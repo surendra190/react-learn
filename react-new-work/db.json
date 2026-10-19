@@ -1,0 +1,47 @@
+{
+  "employees": [
+    {
+      "name": "Rahul",
+      "email": "rahul1q@example.com",
+      "password": "12qwaszx",
+      "gender": "Male",
+      "skills": [
+        "React",
+        "Python",
+        "Java"
+      ],
+      "country": "India",
+      "experience": "12",
+      "agree": true,
+      "id": "hofL3rc1"
+    },
+    {
+      "name": "Surendra",
+      "email": "testing1@indegene.com",
+      "password": "Indegene@123",
+      "gender": "Male",
+      "skills": [
+        "Angular",
+        "React"
+      ],
+      "country": "India",
+      "experience": "3+ years",
+      "agree": true,
+      "id": "hofL3rc"
+    },
+    {
+      "name": "Surendra",
+      "email": "surendra.kumar@programming.com",
+      "password": "rajuqwe",
+      "gender": "Male",
+      "skills": [
+        "React",
+        "Angular"
+      ],
+      "country": "USA",
+      "experience": "Fresher",
+      "agree": true,
+      "id": "CMXfASA"
+    }
+  ]
+}
