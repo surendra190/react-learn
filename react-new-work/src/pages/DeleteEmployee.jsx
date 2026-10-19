@@ -1,26 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-
-const API_URL = "http://localhost:3000/employees";
+import { useEmployees } from "../context/EmployeeContext";
 
 function DeleteEmployee() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const { getEmployeeById, deleteEmployee } = useEmployees();
+
   const [employee, setEmployee] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function loadEmployee() {
       try {
-        const response = await fetch(`${API_URL}/${id}`);
-
-        if (!response.ok) {
-          throw new Error("Employee not found.");
-        }
-
-        setEmployee(await response.json());
+        const data = await getEmployeeById(id);
+        setEmployee(data);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -29,60 +26,61 @@ function DeleteEmployee() {
     }
 
     loadEmployee();
-  }, [id]);
+  }, [id, getEmployeeById]);
 
   async function handleDelete() {
+    setDeleting(true);
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to delete employee.");
-      }
+      await deleteEmployee(id);
 
       navigate("/employees", {
         state: { message: "Employee deleted successfully." },
       });
     } catch (err) {
       setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   }
 
   if (loading) return <p>Loading employee...</p>;
 
-  if (error && !employee) {
+  if (!employee) {
     return (
-      <div>
-        <p style={{ color: "red" }}>{error}</p>
+      <section>
+        <p className="error-message">{error || "Employee not found."}</p>
         <Link to="/employees">Back to employee list</Link>
-      </div>
+      </section>
     );
   }
 
-  if (!employee) return null;
-
   return (
-    <div>
+    <section className="form-card">
       <h2>Delete Employee</h2>
 
       <p>
-        Are you sure you want to delete{" "}
-        <strong>{employee.name}</strong>?
+        Are you sure you want to delete <strong>{employee.name}</strong>?
       </p>
-
       <p>Email: {employee.email}</p>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="error-message">{error}</p>}
 
-      <button onClick={handleDelete}>Confirm Delete</button>
+      <div className="button-row">
+        <button
+          className="danger-button"
+          onClick={handleDelete}
+          disabled={deleting}
+        >
+          {deleting ? "Deleting..." : "Confirm Delete"}
+        </button>
 
-      <Link to="/employees" style={{ marginLeft: "12px" }}>
-        Cancel
-      </Link>
-    </div>
+        <Link className="button-link secondary-link" to="/employees">
+          Cancel
+        </Link>
+      </div>
+    </section>
   );
 }
 

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
-const API_URL = "http://localhost:3000/employees";
+import { useEmployees } from "../context/EmployeeContext";
 
 const initialForm = {
   name: "",
@@ -18,23 +17,19 @@ function EmployeeForm({ isEdit = false }) {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(isEdit);
+  const [saving, setSaving] = useState(false);
 
-  const navigate = useNavigate();
   const { id } = useParams();
+  const navigate = useNavigate();
 
-  // In Edit mode, load the existing employee.
+  const { getEmployeeById, addEmployee, updateEmployee } = useEmployees();
+
   useEffect(() => {
     if (!isEdit) return;
 
     async function loadEmployee() {
       try {
-        const response = await fetch(`${API_URL}/${id}`);
-
-        if (!response.ok) {
-          throw new Error("Employee not found");
-        }
-
-        const employee = await response.json();
+        const employee = await getEmployeeById(id);
 
         setForm({
           ...initialForm,
@@ -49,9 +44,8 @@ function EmployeeForm({ isEdit = false }) {
     }
 
     loadEmployee();
-  }, [id, isEdit]);
+  }, [id, isEdit, getEmployeeById]);
 
-  // Handle text fields, radio buttons and the agreement checkbox.
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
 
@@ -61,7 +55,6 @@ function EmployeeForm({ isEdit = false }) {
     }));
   }
 
-  // Handle multiple skill checkboxes.
   function handleSkillChange(event) {
     const { value, checked } = event.target;
 
@@ -90,30 +83,25 @@ function EmployeeForm({ isEdit = false }) {
       return;
     }
 
-    // Password is required when adding a new employee.
     if (!isEdit && form.password.length < 6) {
       setError("Password must contain at least 6 characters.");
       return;
     }
 
+    setSaving(true);
+
     try {
       const payload = { ...form };
 
-      // If editing and password is blank, keep the old value.
+      // Keep the existing password if the edit field is blank.
       if (isEdit && !payload.password) {
         delete payload.password;
       }
 
-      const response = await fetch(isEdit ? `${API_URL}/${id}` : API_URL, {
-        method: isEdit ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to save employee.");
+      if (isEdit) {
+        await updateEmployee(id, payload);
+      } else {
+        await addEmployee(payload);
       }
 
       navigate("/employees", {
@@ -125,30 +113,32 @@ function EmployeeForm({ isEdit = false }) {
       });
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
   if (loading) return <p>Loading employee...</p>;
 
   return (
-    <div>
+    <section className="form-card">
       <h2>{isEdit ? "Update Employee" : "Add Employee"}</h2>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="error-message">{error}</p>}
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Name: </label>
+      <form onSubmit={handleSubmit} className="employee-form">
+        <label>
+          Name
           <input
             name="name"
             value={form.name}
             onChange={handleChange}
             required
           />
-        </div>
+        </label>
 
-        <div>
-          <label>Email: </label>
+        <label>
+          Email
           <input
             type="email"
             name="email"
@@ -156,10 +146,10 @@ function EmployeeForm({ isEdit = false }) {
             onChange={handleChange}
             required
           />
-        </div>
+        </label>
 
-        <div>
-          <label>Password: </label>
+        <label>
+          Password
           <input
             type="password"
             name="password"
@@ -169,13 +159,12 @@ function EmployeeForm({ isEdit = false }) {
             required={!isEdit}
             minLength={6}
           />
-        </div>
+        </label>
 
         <fieldset>
           <legend>Gender</legend>
-
           {["Male", "Female", "Other"].map((gender) => (
-            <label key={gender}>
+            <label className="inline-option" key={gender}>
               <input
                 type="radio"
                 name="gender"
@@ -191,22 +180,21 @@ function EmployeeForm({ isEdit = false }) {
 
         <fieldset>
           <legend>Skills</legend>
-
           {["React", "Angular", "Python", "Java"].map((skill) => (
-            <label key={skill}>
+            <label className="inline-option" key={skill}>
               <input
                 type="checkbox"
+                value={skill}
                 checked={form.skills.includes(skill)}
                 onChange={handleSkillChange}
-                value={skill}
               />
               {skill}
             </label>
           ))}
         </fieldset>
 
-        <div>
-          <label>Country: </label>
+        <label>
+          Country
           <select
             name="country"
             value={form.country}
@@ -218,10 +206,10 @@ function EmployeeForm({ isEdit = false }) {
             <option value="UK">UK</option>
             <option value="USA">USA</option>
           </select>
-        </div>
+        </label>
 
-        <div>
-          <label>Experience (years): </label>
+        <label>
+          Experience (years)
           <input
             type="number"
             name="experience"
@@ -230,30 +218,34 @@ function EmployeeForm({ isEdit = false }) {
             onChange={handleChange}
             required
           />
+        </label>
+
+        <label className="inline-option">
+          <input
+            type="checkbox"
+            name="agree"
+            checked={form.agree}
+            onChange={handleChange}
+            required
+          />
+          I agree to the terms
+        </label>
+
+        <div className="button-row">
+          <button type="submit" disabled={saving}>
+            {saving ? "Saving..." : isEdit ? "Update Employee" : "Add Employee"}
+          </button>
+
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => navigate("/employees")}
+          >
+            Cancel
+          </button>
         </div>
-
-        <div>
-          <label>
-            <input
-              type="checkbox"
-              name="agree"
-              checked={form.agree}
-              onChange={handleChange}
-              required
-            />
-            I agree to the terms
-          </label>
-        </div>
-
-        <button type="submit">
-          {isEdit ? "Update Employee" : "Add Employee"}
-        </button>
-
-        <button type="button" onClick={() => navigate("/employees")}>
-          Cancel
-        </button>
       </form>
-    </div>
+    </section>
   );
 }
 
