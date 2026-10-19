@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-
+import { useCallback } from "react";
 const API_URL = "http://localhost:3000/employees";
 
 const EmployeeContext = createContext(null);
@@ -35,7 +35,7 @@ export function EmployeeProvider({ children }) {
   }, []);
 
   // READ: fetch one employee by ID for the Edit/Delete pages.
-  async function getEmployeeById(id) {
+  async function getEmployeeByIdWithout(id) {
     const response = await fetch(`${API_URL}/${id}`);
 
     if (!response.ok) {
@@ -44,6 +44,17 @@ export function EmployeeProvider({ children }) {
 
     return response.json();
   }
+
+  // Inside EmployeeProvider:
+  const getEmployeeById = useCallback(async (id) => {
+    const response = await fetch(`${API_URL}/${id}`);
+
+    if (!response.ok) {
+      throw new Error("Employee not found.");
+    }
+
+    return response.json();
+  }, []);
 
   // CREATE: add an employee.
   async function addEmployee(employee) {
